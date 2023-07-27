@@ -34,7 +34,7 @@ OctreeSdf::OctreeSdf(const Mesh& mesh, BoundingBox box,
     mStartGridXY = mStartGridSize * mStartGridSize;
 
     mStartGridCellSize = maxSize / static_cast<float>(mStartGridSize);
-
+  
     switch(initAlgorithm)
     {
         case OctreeSdf::InitAlgorithm::UNIFORM:
@@ -101,6 +101,59 @@ float OctreeSdf::getDistance(glm::vec3 sample) const
     auto& values = *reinterpret_cast<const std::array<float, InterpolationMethod::NUM_COEFFICIENTS>*>(&mOctreeData[currentNode->getChildrenIndex()]);
 
     return InterpolationMethod::interpolateValue(values, fracPart);
+}
+
+OctreeSdf::OctreeNode OctreeSdf::getLeaf(glm::vec3 sample, glm::vec3& leafPos, float& leafSize) const
+{
+    //SPDLOG_INFO("(Inside function) GridCellSize is {}", mStartGridCellSize);
+    //SPDLOG_INFO("(Inside function) sample is {}, {}, {}", sample.x, sample.y, sample.z);
+    glm::vec3 fracPart = (sample - mBox.min) / mStartGridCellSize;
+    //SPDLOG_INFO("(Inside function) fracPart is {}, {}, {}", fracPart.x, fracPart.y, fracPart.z);
+    glm::ivec3 startArrayPos = glm::floor(fracPart);
+    //SPDLOG_INFO("(Inside function) startArrayPos is {}, {}, {}", startArrayPos.x, startArrayPos.y, startArrayPos.z);
+    fracPart = glm::fract(fracPart);
+    //SPDLOG_INFO("(Inside function) fracPart is {}, {}, {}", fracPart.x, fracPart.y, fracPart.z);
+
+    const OctreeNode* currentNode = &mOctreeData[startArrayPos.z * mStartGridXY + startArrayPos.y * mStartGridSize + startArrayPos.x];
+
+    leafPos = glm::vec3(0.0f);
+    leafSize = 1.0f;
+
+    while (!currentNode->isLeaf())
+    {
+        const uint32_t childIdx = (roundFloat(fracPart.z) << 2) +
+            (roundFloat(fracPart.y) << 1) +
+            roundFloat(fracPart.x);
+
+        currentNode = &mOctreeData[currentNode->getChildrenIndex() + childIdx];
+        leafSize *= 0.5f;
+        leafPos += glm::vec3(leafSize * roundFloat(fracPart.x), leafSize * roundFloat(fracPart.y), leafSize * roundFloat(fracPart.z));
+        fracPart = glm::fract(2.0f * fracPart);
+    }
+
+    leafPos = mBox.min + (glm::vec3(startArrayPos) + leafPos) * mStartGridCellSize;
+    leafSize *= mStartGridCellSize;
+
+    return *currentNode;
+}
+
+OctreeSdf::OctreeNode OctreeSdf::getGridNode(glm::vec3 sample, glm::vec3& nodePos, float& nodeSize) const
+{
+    //SPDLOG_INFO("(Inside function) GridCellSize is {}", mStartGridCellSize);
+    //SPDLOG_INFO("(Inside function) sample is {}, {}, {}", sample.x, sample.y, sample.z);
+    glm::vec3 fracPart = (sample - mBox.min) / mStartGridCellSize;
+    //SPDLOG_INFO("(Inside function) fracPart is {}, {}, {}", fracPart.x, fracPart.y, fracPart.z);
+    glm::ivec3 startArrayPos = glm::floor(fracPart);
+    //SPDLOG_INFO("(Inside function) startArrayPos is {}, {}, {}", startArrayPos.x, startArrayPos.y, startArrayPos.z);
+    fracPart = glm::fract(fracPart);
+    //SPDLOG_INFO("(Inside function) fracPart is {}, {}, {}", fracPart.x, fracPart.y, fracPart.z);
+
+    nodePos = mBox.min + glm::vec3(startArrayPos) * mStartGridCellSize;
+    nodeSize = mStartGridCellSize;
+
+    const OctreeNode* currentNode = &mOctreeData[startArrayPos.z * mStartGridXY + startArrayPos.y * mStartGridSize + startArrayPos.x];
+
+    return *currentNode;
 }
 
 float OctreeSdf::getDistance(glm::vec3 sample, glm::vec3& outGradient) const
