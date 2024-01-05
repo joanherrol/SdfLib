@@ -36,6 +36,17 @@ const char* modelPaths[]{
     "C:/Users/juane/Documents/Github/SdfLib/models/temple.ply"
 };
 
+const char* isoLinearPaths[]{
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeArmadilloIsoLin.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeBunnyIsoLin.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeDragonIsoLin.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeFrogIsoLin.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeHappyIsoLin.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeReliefPlate1MIsoLin.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeSponzaIsoLin.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeTempleIsoLin.bin"
+};
+
 const char* cubicPaths[]{
     "C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeArmadilloCub.bin",
     "C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeBunnyCub.bin",
@@ -50,7 +61,7 @@ const char* cubicPaths[]{
 class MyScene : public Scene
 {
 public:
-    MyScene(std::string modelPath, std::string sdfPath) : mModelPath(modelPath), mSdfPath(sdfPath){}
+    MyScene(std::string modelPath, std::string sdfPath, std::string sdfIsoLinPath) : mModelPath(modelPath), mSdfPath(sdfPath), mSdfIsoLinPath(sdfIsoLinPath){}
 
     void start() override
 	{
@@ -73,12 +84,18 @@ public:
             SPDLOG_INFO("Center is {}, {}, {}", center.x, center.y, center.z);
         }
         
-        // Load Sdf
+        // Load tricubic Sdf
         std::unique_ptr<SdfFunction> sdfUnique = SdfFunction::loadFromFile(mSdfPath);
         std::shared_ptr<SdfFunction> sdf = std::move(sdfUnique);
         std::shared_ptr<OctreeSdf> octreeSdf = std::dynamic_pointer_cast<OctreeSdf>(sdf);
 
-        mOctreeLightShader = std::make_unique<SdfOctreeLightShader>(*octreeSdf);
+        std::unique_ptr<SdfFunction> sdfIsoLinUnique = SdfFunction::loadFromFile(mSdfIsoLinPath);
+        std::shared_ptr<SdfFunction> sdfIsoLin = std::move(sdfIsoLinUnique);
+        std::shared_ptr<OctreeSdf> octreeSdfIsoLin = std::dynamic_pointer_cast<OctreeSdf>(sdfIsoLin);
+
+
+        if (firstTime) mOctreeLightShader = std::make_unique<SdfOctreeLightShader>(*octreeSdf, *octreeSdfIsoLin);
+        else mOctreeLightShader->setOctrees(*octreeSdf, *octreeSdfIsoLin);
 
         // Model Render
         {
@@ -97,7 +114,7 @@ public:
 			mModelRenderer->setIndexData(mesh.getIndices());
 			mModelRenderer->setShader(mOctreeLightShader.get());
             mModelRenderer->callDraw = false; // Disable the automatic call because we already call the function
-			addSystem(mModelRenderer);
+			if (firstTime) addSystem(mModelRenderer);
         }
 
         // Plane Render
@@ -123,7 +140,7 @@ public:
                                         glm::scale(glm::mat4(1.0f), glm::vec3(64.0f)));
             mPlaneRenderer->setShader(mOctreeLightShader.get());
             mPlaneRenderer->callDraw = false; // Disable the automatic call because we already call the function
-            addSystem(mPlaneRenderer);
+            if (firstTime) addSystem(mPlaneRenderer);
         }
 
         // Create camera
@@ -157,6 +174,7 @@ public:
             mOctreeLightShader->setLightInfo(i, mLightPosition[i], mLightColor[i], mLightIntensity[i], mLightRadius[i]);
         }
         mOctreeLightShader->setUseAO(mUseAO);
+        mOctreeLightShader->setUseShadows(mUseShadows);
         mOctreeLightShader->setUseSoftShadows(mUseSoftShadows);
         mOctreeLightShader->setOverRelaxation(mOverRelaxation);
         mOctreeLightShader->setMaxShadowIterations(mMaxShadowIterations);
@@ -210,7 +228,8 @@ public:
             ImGui::Begin("Scene");
             ImGui::Text("Scene Settings");
             ImGui::Checkbox("AO", &mUseAO);
-            ImGui::Checkbox("Soft Shadows", &mUseSoftShadows);
+            ImGui::Checkbox("Shadows", &mUseShadows);
+            if (mUseShadows) ImGui::Checkbox("Soft Shadows", &mUseSoftShadows);
             ImGui::End();
         }
 
@@ -260,6 +279,7 @@ public:
             {
                 mSdfPath = cubicPaths[selectedItem];
                 mModelPath = modelPaths[selectedItem];
+                mSdfIsoLinPath = isoLinearPaths[selectedItem];
                 start();
                 mShowLoadSdfWindow = false;
             }
@@ -273,6 +293,7 @@ public:
 
 private:
     std::string mSdfPath;
+    std::string mSdfIsoLinPath;
     std::string mModelPath;
     std::shared_ptr<RenderSdf> mRenderSdf;
     std::shared_ptr<RenderMesh> mModelRenderer;
@@ -284,6 +305,7 @@ private:
     //Options
     int mMaxShadowIterations = 512;
     bool mUseAO = false;
+    bool mUseShadows = false;
     bool mUseSoftShadows = false;
     float mOverRelaxation = 1.47f;
 
@@ -363,7 +385,7 @@ int main(int argc, char** argv)
     }
 
     //MyScene scene(args::get(modelPathArg), args::get(sdfPathArg));
-    MyScene scene("C:/Users/juane/Documents/Github/SdfLib/models/bunny.ply", "C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeBunnyCub.bin");
+    MyScene scene("C:/Users/juane/Documents/Github/SdfLib/models/bunny.ply", "C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeBunnyCub.bin", "C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeBunnyIsoLin.bin");
     MainLoop loop;
     loop.start(scene, "SdfLight");
 }

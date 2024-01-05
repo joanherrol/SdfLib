@@ -12,7 +12,7 @@
 class SdfOctreeLightShader : public Shader<SdfOctreeLightShader>
 {
 public:
-    SdfOctreeLightShader(sdflib::OctreeSdf& octreeSdf) : Shader(SHADER_PATH + "sdfOctreeLight.vert", SHADER_PATH + "sdfOctreeLight.frag")
+    SdfOctreeLightShader(sdflib::OctreeSdf& octreeSdf, sdflib::OctreeSdf& octreeSdfIsoLin) : Shader(SHADER_PATH + "sdfOctreeLight.vert", SHADER_PATH + "sdfOctreeLight.frag")
     {
         unsigned int mRenderProgramId = getProgramId();
 
@@ -37,6 +37,7 @@ public:
 
         //Options
         mUseAOLocation = glGetUniformLocation(mRenderProgramId, "useAO");
+        mUseShadowsLocation = glGetUniformLocation(mRenderProgramId, "useShadows");
         mUseSoftShadowsLocation = glGetUniformLocation(mRenderProgramId, "useSoftShadows");
         mOverRelaxationLocation = glGetUniformLocation(mRenderProgramId, "overRelaxation");
         mMaxShadowIterationsLocation = glGetUniformLocation(mRenderProgramId, "maxShadowIterations");
@@ -60,6 +61,27 @@ public:
         glBufferData(GL_SHADER_STORAGE_BUFFER, octreeSdf.getOctreeData().size() * sizeof(sdflib::OctreeSdf::OctreeNode), octreeSdf.getOctreeData().data(), GL_STATIC_DRAW);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mOctreeSSBO);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        // Set isolinear octree data
+        glGenBuffers(1, &mOctreeIsoLinSSBO);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, mOctreeIsoLinSSBO);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, octreeSdfIsoLin.getOctreeData().size() * sizeof(sdflib::OctreeSdf::OctreeNode), octreeSdfIsoLin.getOctreeData().data(), GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, mOctreeIsoLinSSBO);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
+
+    void setOctrees(sdflib::OctreeSdf& octreeSdf, sdflib::OctreeSdf& octreeSdfIsoLin) 
+    {
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, mOctreeSSBO);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, octreeSdf.getOctreeData().size() * sizeof(sdflib::OctreeSdf::OctreeNode), octreeSdf.getOctreeData().data(), GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mOctreeSSBO);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        // Set isolinear octree data
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, mOctreeIsoLinSSBO);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, octreeSdfIsoLin.getOctreeData().size() * sizeof(sdflib::OctreeSdf::OctreeNode), octreeSdfIsoLin.getOctreeData().data(), GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, mOctreeIsoLinSSBO);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
     //Options
@@ -68,6 +90,10 @@ public:
         mUseAO = useAO;
     }
 
+    void setUseShadows(bool useShadows)
+    {
+        mUseShadows = useShadows;
+    }    
     void setUseSoftShadows(bool useSoftShadows)
     {
         mUseSoftShadows = useSoftShadows;
@@ -125,6 +151,7 @@ public:
         glUniform1f(mEpsilonLocation, mEpsilon);
         //Options
         glUniform1i(mUseAOLocation, mUseAO);
+        glUniform1i(mUseShadowsLocation, mUseShadows);
         glUniform1i(mUseSoftShadowsLocation, mUseSoftShadows);
         glUniform1f(mOverRelaxationLocation, mOverRelaxation);
         glUniform1i(mMaxShadowIterationsLocation, mMaxShadowIterations);
@@ -144,6 +171,7 @@ public:
     }
 private:
     unsigned int mOctreeSSBO;
+    unsigned int mOctreeIsoLinSSBO;
 
     glm::mat4x4 worldToStartGridMatrix;
     unsigned int worldToStartGridMatrixLocation;
@@ -168,6 +196,7 @@ private:
 
      //Options
     unsigned int mUseAOLocation;
+    unsigned int mUseShadowsLocation;
     unsigned int mUseSoftShadowsLocation;
     unsigned int mOverRelaxationLocation;
 
@@ -176,6 +205,7 @@ private:
 
 
     bool mUseAO = false;
+    bool mUseShadows = false;
     bool mUseSoftShadows = false;
     float mOverRelaxation = 1.47f;
 
