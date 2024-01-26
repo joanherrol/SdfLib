@@ -45,14 +45,14 @@ const char* linearPaths[]{
 };
 
 const char* cubicPaths[]{
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeArmadilloCub.bin",
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeBunnyCub.bin",
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeDragonCub.bin",
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeFrogCub.bin",
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeHappyCub.bin",
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeReliefPlate1MCub.bin",
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeSponzaCub.bin",
-    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeTempleCub.bin"
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeArmadilloIsoCub.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeBunnyIsoCub.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeDragonIsoCub.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeFrogIsoCub.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeHappyIsoCub.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeReliefPlate1MIsoCub.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeSponzaIsoCub.bin",
+    "C:/Users/juane/Documents/Github/SdfLib/output/SdfOctreeTempleIsoCub.bin"
 };
 
 
@@ -183,7 +183,7 @@ int main(int argc, char** argv)
     }
 
     //MyScene scene(args::get(modelPathArg));
-    MyScene scene("C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeArmadilloIsoLin.bin", "C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeArmadilloCub.bin");
+    MyScene scene("C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeArmadilloIsoLin.bin", "C:/Users/juane/Documents/Github/SdfLib/output/sdfOctreeArmadilloIsoCub.bin");
     MainLoop loop;
     loop.start(scene, "SdfRender");
 }
